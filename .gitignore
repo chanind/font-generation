@@ -131,5 +131,5 @@ dmypy.json
 # vscode
 .vscode
 
-# misc
-data
+# fonts dir
+fonts

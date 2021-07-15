@@ -3,7 +3,7 @@ from cairosvg import svg2png
 from PIL import Image
 
 
-def svg_to_pil(svg: str, width: int, height: int):
+def svg_to_pil(svg: str, width: int, height: int) -> Image:
     out = BytesIO()
     svg2png(
         bytestring=svg.encode("utf-8"),
