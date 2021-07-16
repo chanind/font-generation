@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # MS fonts downloader
 # based on https://salsa.debian.org/debian/msttcorefonts/-/blob/master/update-ms-fonts
 
@@ -84,3 +86,7 @@ if [ -n "$FONTFILES" ] ; then
         rm $ff
     done
 fi
+
+rm *.exe
+rm msfonts.info
+rm *.DLL
