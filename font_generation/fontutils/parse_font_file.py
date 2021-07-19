@@ -1,8 +1,8 @@
 from typing import Dict, List, Sequence, Tuple
 from fontTools.ttLib.sfnt import readTTCHeader
 from fontTools.ttLib import TTFont
-from fontTools.pens.svgPathPen import SVGPathPen
 from os.path import basename
+from pathlib import Path
 
 from .Font import Font
 from .Glyph import Glpyh
@@ -17,6 +17,22 @@ VALID_UNICODE_RANGES = [
 
 FONT_SPECIFIER_NAME_ID = 4
 FONT_SPECIFIER_FAMILY_ID = 1
+
+FONTS_DIR = (Path(__file__) / ".." / ".." / ".." / "fonts").resolve()
+FONT_SUFFIXES = [".ttf", ".ttc", ".otf"]
+
+
+def load_all_fonts():
+    font_files = FONTS_DIR.glob("*")
+    fonts = []
+    for font_file in font_files:
+        if font_file.suffix.lower() in FONT_SUFFIXES:
+            font = parse_font_file(font_file)
+            if len(font.glyph_keys_list()) == 0:
+                print(f"Invalid font, no glpyhs: {font.name}")
+                continue
+            fonts.append(font)
+    return fonts
 
 
 # from https://gist.github.com/pklaus/dce37521579513c574d0
@@ -76,6 +92,13 @@ def parse_ttf_font_file(font_path: str) -> Font:
     return parse_ttfont(ttfont, font_name)
 
 
+def parse_font_file(font_path: str) -> Font:
+    print(f"loading font: {font_path}")
+    if Path(font_path).match("*.ttc") or Path(font_path).match("*.TTC"):
+        return parse_ttc_font_file(font_path)
+    return parse_ttf_font_file(font_path)
+
+
 def get_unicode_mapping_for_ttfont(ttfont: TTFont) -> Dict[str, int]:
     mapping: Dict[str, int] = {}
     for cmap_table in ttfont["cmap"].tables:
@@ -87,21 +110,16 @@ def get_unicode_mapping_for_ttfont(ttfont: TTFont) -> Dict[str, int]:
 def parse_ttfont(ttfont: TTFont, font_name: str, font_num: int = 0) -> Font:
     glpyhs_map: Dict[int, Glpyh] = {}
     os2 = ttfont["OS/2"]
-    glyphSet = ttfont.getGlyphSet()
+    ttglyphset = ttfont.getGlyphSet()
     unicode_mapping = get_unicode_mapping_for_ttfont(ttfont)
     for glyph_name in ttfont.getGlyphNames():
-        glyph = glyphSet[glyph_name]
+        ttglyph = ttglyphset[glyph_name]
         unicode = unicode_mapping.get(glyph_name)
-        if glyph and unicode and glyph.width > 0 and should_keep_char(unicode):
-            svgpen = SVGPathPen(glyphSet)
-            glyph.draw(svgpen)
+        if ttglyph and unicode and ttglyph.width > 0 and should_keep_char(unicode):
             glpyhs_map[unicode] = Glpyh(
                 unicode=unicode,
-                path=svgpen.getCommands(),
-                width=glyph.width,
-                height=glyph.height,
-                lsb=glyph.lsb,
-                tsb=glyph.tsb,
+                ttglyph=ttglyph,
+                ttglyphset=ttglyphset,
                 ascender=os2.sTypoAscender,
                 descender=os2.sTypoDescender,
             )

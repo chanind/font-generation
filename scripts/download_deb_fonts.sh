@@ -11,7 +11,7 @@ wget -O gbsn00lp.ttf https://salsa.debian.org/fonts-team/fonts-arphic-gbsn00lp/-
 wget -O bsmi00lp.ttf https://salsa.debian.org/fonts-team/fonts-arphic-bsmi00lp/-/raw/master/bsmi00lp.ttf
 wget -O bkai00mp.ttf https://salsa.debian.org/fonts-team/fonts-arphic-bkai00mp/-/raw/master/bkai00mp.ttf
 wget -O gkai00mp.ttf https://salsa.debian.org/fonts-team/fonts-arphic-gkai00mp/-/raw/master/gkai00mp.ttf
-wget -O uming.ttf https://salsa.debian.org/fonts-team/fonts-cmu/-/raw/master/uming.ttf
+# wget -O uming.ttf https://salsa.debian.org/fonts-team/fonts-cmu/-/raw/master/uming.ttf
 
 # babelstone
 wget -O BabelStoneHan.ttf https://salsa.debian.org/fonts-team/fonts-babelstone-han/-/raw/master/BabelStoneHan.ttf

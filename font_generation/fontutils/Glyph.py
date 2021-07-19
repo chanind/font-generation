@@ -1,6 +1,9 @@
 from dataclasses import dataclass
-
 from PIL import Image
+from functools import lru_cache
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.ttLib.ttFont import _TTGlyph, _TTGlyphSet
+
 from .svg_to_pil import svg_to_pil
 
 PADDING_PERCENT = 20
@@ -9,20 +12,19 @@ PADDING_PERCENT = 20
 @dataclass
 class Glpyh:
     unicode: str
-    path: str
-    width: int
-    height: int
-    lsb: int
-    tsb: int
+    ttglyph: _TTGlyph
+    ttglyphset: _TTGlyphSet
     ascender: int
     descender: int
 
-    @property
-    def svg(self) -> str:
+    def __hash__(self):
+        return hash(self.ttglyph) + hash(self.unicode)
+
+    def to_svg(self) -> str:
         # based on https://github.com/fonttools/fonttools/issues/2087
         view_box_height = self.ascender - self.descender
-        padding = self.width * (PADDING_PERCENT) / 100
-        view_box = f"{self.lsb - padding} 0 {self.width + 2 * padding} {view_box_height + 2 * padding}"
+        padding = self.ttglyph.width * (PADDING_PERCENT) / 100
+        view_box = f"{self.ttglyph.lsb - padding} 0 {self.ttglyph.width + 2 * padding} {view_box_height + 2 * padding}"
         return (
             f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="{view_box}">\n'
             f'<g transform="matrix(1 0 0 -1 0 {self.ascender + padding})">'
@@ -31,5 +33,12 @@ class Glpyh:
             "</svg>"
         )
 
+    @property
+    def path(self) -> str:
+        pen = SVGPathPen(self.ttglyphset)
+        self.ttglyph.draw(pen)
+        return pen.getCommands()
+
+    @lru_cache(maxsize=1)
     def to_pil(self, size: int) -> Image:
-        return svg_to_pil(self.svg, size, size)
+        return svg_to_pil(self.to_svg(), size, size)
