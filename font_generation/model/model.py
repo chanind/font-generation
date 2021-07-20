@@ -13,7 +13,7 @@ def tile_like(x, img):
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channel):
-        super()
+        super().__init__()
         conv_block = [
             nn.Conv2d(in_channel, in_channel, 3, stride=1, padding=1, bias=False),
             nn.InstanceNorm2d(in_channel),
@@ -42,7 +42,7 @@ class Down(nn.Module):
         stride=2,
         padding=1,
     ):
-        super()
+        super().__init__()
         layers = [
             nn.Conv2d(
                 in_channel,
@@ -90,8 +90,7 @@ class Up(nn.Module):
         self.img_layer = nn.Sequential(*img_layers)
 
     def forward(self, x, skip_input):
-        x = self.img_layer(x)
-        img_out = self.img_attr(x)
+        img_out = self.img_layer(x)
         out = torch.cat([img_out, skip_input], 1)
         return out
 
@@ -101,7 +100,7 @@ class SelfAttention(nn.Module):
     """Self attention Layer"""
 
     def __init__(self, in_dim, activation=None):
-        super(SelfAttention, self).__init__()
+        super().__init__()
         self.chanel_in = in_dim
         self.activation = activation
 
@@ -153,7 +152,7 @@ class StyleEncoder(nn.Module):
         self,
         in_channel: int = 1,
         style_out_channel: int = 256,
-        n_res_blocks: int = 8,
+        # n_res_blocks: int = 8,
     ):
         super().__init__()
         layers = []
@@ -174,22 +173,28 @@ class StyleEncoder(nn.Module):
         self.down = nn.Sequential(*layers)
 
         # Style transform
-        res_blks = []
-        res_channel = style_out_channel
-        for _ in range(n_res_blocks):
-            res_blks.append(ResidualBlock(res_channel))
-        self.res_layer = nn.Sequential(*res_blks)
-        self.encoder = nn.Sequential(self.down, self.res_layer)
+        # res_blks = []
+        # res_channel = style_out_channel
+        # for _ in range(n_res_blocks):
+        #     res_blks.append(ResidualBlock(res_channel))
+        # self.res_layer = nn.Sequential(*res_blks)
+        # self.encoder = nn.Sequential(self.down, self.res_layer)
 
     def forward(self, style_imgs):
         """
         style_imgs should be of shape BATCH x N_STYLE_IMGS x 1 x W x H
         """
 
+        # print("si", style_imgs.shape)
         # first, stack the style images on top of each other along the batch direction, so we can get a style vector for each
         n_style = style_imgs.shape[1]
+        # print("nstyle", n_style)
         style_imgs_reshaped = style_imgs.view(-1, *style_imgs.shape[-3:])
-        encoded_styles_reshaped = self.encoder(style_imgs_reshaped)
+        # print("sir", style_imgs_reshaped.shape)
+        encoded_styles_reshaped = self.down(style_imgs_reshaped)
+        # print("x", x.shape)
+        # encoded_styles_reshaped = self.res_layer(x)
+        # encoded_styles_reshaped = self.encoder(style_imgs_reshaped)
 
         # reinflate the n_style encodings, and average them together along the n_styles dimension
         # TODO: is there a smarter way to combine these style vectors than just a simple average?
@@ -205,7 +210,7 @@ class Generator(nn.Module):
         in_channel: int = 1,
         style_out_channel: int = 256,
         out_channel: int = 1,
-        n_res_blocks: int = 8,
+        # n_res_blocks: int = 8,
         attention: bool = True,
     ):
         """Generator with style transform"""
@@ -214,7 +219,7 @@ class Generator(nn.Module):
         self.style_enc = StyleEncoder(
             in_channel=in_channel,
             style_out_channel=style_out_channel,
-            n_res_blocks=n_res_blocks,
+            # n_res_blocks=n_res_blocks,
         )
 
         # Initial Conv
@@ -230,9 +235,9 @@ class Generator(nn.Module):
         self.down4 = Down(256, 512, dropout=0.5)
         self.down5 = Down(512, 512, dropout=0.5)
         self.down6 = Down(512, 512, normalize=False, dropout=0.5)
-        self.fc_content = Down(
-            512, 52, normalize=False, lrelu=False, kernel_size=1, stride=1, padding=0
-        )
+        # self.fc_content = Down(
+        #     512, 52, normalize=False, lrelu=False, kernel_size=1, stride=1, padding=0
+        # )
 
         self.up1 = Up(512 + style_out_channel, 512, dropout=0.5)
         self.up2 = Up(1024, 512, dropout=0.5, attention=attention)
@@ -285,11 +290,12 @@ class Generator(nn.Module):
         d4 = self.down4(d3)
         d5 = self.down5(d4)
         d6 = self.down6(d5)
+
         # content classifier
-        content_logits = self.fc_content(d6)
-        content_logits = content_logits.view(
-            content_logits.size(0), content_logits.size(1)
-        )
+        # content_logits = self.fc_content(d6)
+        # content_logits = content_logits.view(
+        #     content_logits.size(0), content_logits.size(1)
+        # )
         d6_ = torch.cat([d6, target_style], dim=1)
 
         skip_style_feature = target_style
@@ -320,7 +326,7 @@ class Generator(nn.Module):
         u5 = self.up5(u4, skip5)
 
         out = self.final(u5)
-        return out, content_logits
+        return out  # , content_logits
 
 
 class Discriminator(nn.Module):
@@ -348,6 +354,10 @@ class Discriminator(nn.Module):
         )
 
     def forward(self, img, style_imgs):
-        input = torch.cat([img, *style_imgs], dim=1)
+        # stack style images on top of each other along the channel dim
+        squeezed_style_imgs = style_imgs.view(
+            (style_imgs.shape[0], -1, *style_imgs.shape[-2:])
+        )
+        input = torch.cat([img, squeezed_style_imgs], dim=1)
         out = self.model(input)
         return out

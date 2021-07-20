@@ -18,22 +18,6 @@ VALID_UNICODE_RANGES = [
 FONT_SPECIFIER_NAME_ID = 4
 FONT_SPECIFIER_FAMILY_ID = 1
 
-FONTS_DIR = (Path(__file__) / ".." / ".." / ".." / "fonts").resolve()
-FONT_SUFFIXES = [".ttf", ".ttc", ".otf"]
-
-
-def load_all_fonts():
-    font_files = FONTS_DIR.glob("*")
-    fonts = []
-    for font_file in font_files:
-        if font_file.suffix.lower() in FONT_SUFFIXES:
-            font = parse_font_file(font_file)
-            if len(font.glyph_keys_list()) == 0:
-                print(f"Invalid font, no glpyhs: {font.name}")
-                continue
-            fonts.append(font)
-    return fonts
-
 
 # from https://gist.github.com/pklaus/dce37521579513c574d0
 def get_short_name(font: TTFont) -> Tuple[str, str]:

@@ -37,10 +37,17 @@ class FontStylesDataset(IterableDataset):
 
     def generate_sample(self):
         style_font, content_font = random.sample(self.fonts, k=2)
-        content_char = random.choice(content_font.glyph_keys_list())
+        common_glyph_keys = list(
+            style_font.glyph_keys_set().intersection(content_font.glyph_keys_set())
+        )
+        target_char = random.choice(common_glyph_keys)
         style_chars = random.sample(style_font.glyph_keys_list(), k=self.n_styles)
-        content_img = content_font.glyphs_map[content_char].to_pil(self.size_px)
+
+        content_img = content_font.glyphs_map[target_char].to_pil(self.size_px)
         content_tensor = pil_to_tensor(content_img)
+
+        target_img = style_font.glyphs_map[target_char].to_pil(self.size_px)
+        target_tensor = pil_to_tensor(target_img)
 
         style_imgs = [
             style_font.glyphs_map[char].to_pil(self.size_px) for char in style_chars
@@ -49,6 +56,7 @@ class FontStylesDataset(IterableDataset):
         styles_tensor = torch.stack(style_tensors, dim=0)
         return {
             "content": content_tensor,
+            "target": target_tensor,
             "styles": styles_tensor,
         }
 

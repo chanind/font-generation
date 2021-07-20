@@ -16,3 +16,7 @@ class Font:
     @lru_cache(maxsize=1)
     def glyph_keys_list(self):
         return list(self.glyphs_map.keys())
+
+    @lru_cache(maxsize=1)
+    def glyph_keys_set(self):
+        return set(self.glyphs_map.keys())
