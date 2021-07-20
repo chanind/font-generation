@@ -26,7 +26,7 @@ def train(
     lr=0.001,
     b1=0.5,
     b2=0.999,
-    val_portion=0.1,
+    val_portion=0.01,
     num_workers=2,
     init_epoch=0,
     lambda_l1=50.0,
@@ -166,7 +166,6 @@ def train(
                 f"loss_adv: {loss_GAN.item():.6f}, "
             )
 
-            print(message)
             logfile.write(message + "\n")
             logfile.flush()
 
