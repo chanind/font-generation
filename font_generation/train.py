@@ -96,6 +96,7 @@ def train(
     if init_epoch > 0:
         gen_file = checkpoint_dir / f"G_{init_epoch}.pth"
         dis_file = checkpoint_dir / f"D_{init_epoch}.pth"
+        print(f"loading checkpoint files: {gen_file}, {dis_file}")
 
         generator.load_state_dict(torch.load(gen_file))
         discriminator.load_state_dict(torch.load(dis_file))

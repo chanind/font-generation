@@ -11,9 +11,12 @@ def load_all_fonts(max_fonts=None):
     fonts = []
     for font_file in font_files[:max_fonts]:
         if font_file.suffix.lower() in FONT_SUFFIXES:
-            font = parse_font_file(font_file)
-            if len(font.glyph_keys_list()) == 0:
-                print(f"Invalid font, no glpyhs: {font.name}")
-                continue
-            fonts.append(font)
+            try:
+                font = parse_font_file(font_file)
+                if len(font.glyph_keys_list()) == 0:
+                    print(f"Invalid font, no glpyhs: {font.name}")
+                    continue
+                fonts.append(font)
+            except Exception as err:
+                print(f"Unable to open font: {font_file}. {err}")
     return fonts
