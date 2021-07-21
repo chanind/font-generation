@@ -22,7 +22,7 @@ wget -O HanyiSentyCHALK_2018.ttf http://sentyfont.com/index_htm_files/HanyiSenty
 wget -O SentyTea.ttf http://sentyfont.com/index_htm_files/SentyTEA-20190904.ttf
 wget -O SentyMaruko.ttf http://sentyfont.com/index_htm_files/SentyMARUKO.ttf
 wget -O SentyCreamPuff.ttf http://sentyfont.com/index_htm_files/SentyCreamPuff.ttf
-wget -O SentyWen2017.ttf http://sentyfont.com/index_htm_files/SentyWen2017.ttf
+wget -O SentyWen2017.ttf http://sentyfont.com/index_htm_files/HanyiSentyWEN.ttf
 wget -O Hanyi_Senty_Lingfei_Scroll.ttf http://sentyfont.com/index_htm_files/Hanyi%20Senty%20Lingfei%20Scroll.ttf
 wget -O HanyiSentyTang.ttf http://sentyfont.com/index_htm_files/HanyiSentyTang.ttf
 wget -O HanyiSentyJournal.ttf http://sentyfont.com/index_htm_files/HanyiSentyJournal.ttf
