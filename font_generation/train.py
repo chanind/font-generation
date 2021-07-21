@@ -10,9 +10,20 @@ from torchvision.utils import save_image
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from font_generation.model.model import Discriminator, Generator
+from font_generation.model.model import CXLoss, Discriminator, Generator
+from font_generation.model.vgg_cx import VGG19_CX
 from font_generation.data.FontStylesDataset import FontStylesDataset
 from font_generation.fontutils.load_all_fonts import load_all_fonts
+
+
+ROOT_DIR = Path(".").resolve()
+
+
+def increase_channels(im_tensor, num_channels=3):
+    # if this image already has the correct number of channels, just return it
+    if im_tensor.shape[-3] == num_channels:
+        return im_tensor
+    return torch.repeat_interleave(im_tensor, num_channels, dim=-3)
 
 
 def train(
@@ -32,6 +43,7 @@ def train(
     init_epoch=0,
     lambda_l1=50.0,
     lambda_GAN=5.0,
+    lambda_cx=6.0,
     checkpoint_freq=10,
     log_freq=500,
     val_freq=500,
@@ -57,12 +69,12 @@ def train(
     n_train = total_samples - n_val
 
     # # CX Loss
-    # if lambda_cx > 0:
-    #     criterion_cx = CXLoss(sigma=0.5).to(device)
-    #     vgg19 = VGG19_CX().to(device)
-    #     vgg19.load_model("vgg19-dcbb9e9d.pth")
-    #     vgg19.eval()
-    #     vgg_layers = ["conv3_3", "conv4_2"]
+    if lambda_cx > 0:
+        criterion_cx = CXLoss(sigma=0.5).to(device)
+        vgg19 = VGG19_CX().to(device)
+        vgg19.load_model(ROOT_DIR / "vgg19-dcbb9e9d.pth")
+        vgg19.eval()
+        vgg_layers = ["conv3_3", "conv4_2"]
 
     fonts = load_all_fonts()
 
@@ -124,9 +136,9 @@ def train(
                 fake_img = generator(content_img, style_imgs)
                 pred_fake = discriminator(fake_img, style_imgs)
 
-                # if lambda_cx > 0:
-                #     vgg_fake_B = vgg19(fake_B)
-                #     vgg_img_B = vgg19(img_B)
+                if lambda_cx > 0:
+                    vgg_fake = vgg19(increase_channels(fake_img))
+                    vgg_target = vgg19(increase_channels(target_img))
 
                 # Calculate losses
                 loss_GAN = lambda_GAN * criterion_GAN(pred_fake, valid)
@@ -137,14 +149,14 @@ def train(
                 # )  # +
                 # loss_char_A = lambda_char * loss_char_A
 
-                # # CX loss
-                # loss_CX = torch.zeros(1).to(device)
-                # if lambda_cx > 0:
-                #     for l in vgg_layers:
-                #         cx = criterion_cx(vgg_img_B[l], vgg_fake_B[l])
-                #         loss_CX += cx * lambda_cx
+                # CX loss
+                loss_CX = torch.zeros(1).to(device)
+                if lambda_cx > 0:
+                    for layer in vgg_layers:
+                        cx = criterion_cx(vgg_target[layer], vgg_fake[layer])
+                        loss_CX += cx * lambda_cx
 
-                loss_G = loss_GAN + loss_pixel  # + loss_char_A + loss_CX
+                loss_G = loss_GAN + loss_pixel + loss_CX  # + loss_char_A
 
                 optimizer_G.zero_grad()
                 loss_G.backward(retain_graph=True)
@@ -180,6 +192,9 @@ def train(
                 )
 
                 pbar.set_postfix(**{"G loss": loss_G.item(), "D loss": loss_D.item()})
+                writer.add_scalar("GLoss_PX/train", loss_pixel.item(), global_step)
+                writer.add_scalar("GLoss_GAN/train", loss_GAN.item(), global_step)
+                writer.add_scalar("GLoss_CX/train", loss_CX.item(), global_step)
                 writer.add_scalar("GLoss/train", loss_G.item(), global_step)
                 writer.add_scalar("DLoss/train", loss_D.item(), global_step)
                 global_step += 1

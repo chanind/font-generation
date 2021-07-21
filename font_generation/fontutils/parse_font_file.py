@@ -40,7 +40,7 @@ def get_short_name(font: TTFont) -> Tuple[str, str]:
 
 def find_best_ttfont(ttfonts: Sequence[TTFont]) -> TTFont:
     for ttfont in ttfonts:
-        name, family = get_short_name(ttfont)
+        name, _family = get_short_name(ttfont)
         # SC for Simplified Chinese, ex in Noto fonts
         # CN for ukai
         if "SC" in name.upper() or "CN" in name.upper():
