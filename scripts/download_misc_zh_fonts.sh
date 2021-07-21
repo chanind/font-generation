@@ -14,13 +14,13 @@ wget -O HanyiSentyScholar.ttf http://sentyfont.com/index_htm_files/HanyiSentySch
 wget -O HanyiSentyBubbleTea.ttf http://sentyfont.com/index_htm_files/HanyiSentyBubbleTea.ttf
 wget -O HanyiSentyFoundation.ttf http://sentyfont.com/index_htm_files/HanyiSentyFoundation.ttf
 wget -O HanyiSentyPailouArch.ttf http://sentyfont.com/index_htm_files/HanyiSentyPailouArch.ttf
-wget -O OzCaramal.ttf http://sentyfont.com/index_htm_files/OzCaramal.ttf
+wget -O OzCaramel.ttf http://sentyfont.com/index_htm_files/OzCaramel.ttf
 wget -O HanyiSentyJoy.ttf http://sentyfont.com/index_htm_files/HanyiSentyJoy.ttf
 wget -O HanyiSentyCrayon-non-color.ttf http://sentyfont.com/index_htm_files/HanyiSentyCrayon-non-color.ttf
 wget -O HanyiSentyPine.ttf http://sentyfont.com/index_htm_files/HanyiSentyPine.ttf
-wget -O HanyiSentyCHALK 2018.ttf http://sentyfont.com/index_htm_files/HanyiSentyCHALK%202018.ttf
-wget -O SentyTea.ttf http://sentyfont.com/index_htm_files/SentyTea.ttf
-wget -O SentyMaruko.ttf http://sentyfont.com/index_htm_files/SentyMaruko.ttf
+wget -O HanyiSentyCHALK_2018.ttf http://sentyfont.com/index_htm_files/HanyiSentyChalk%202018.ttf
+wget -O SentyTea.ttf http://sentyfont.com/index_htm_files/SentyTEA-20190904.ttf
+wget -O SentyMaruko.ttf http://sentyfont.com/index_htm_files/SentyMARUKO.ttf
 wget -O SentyCreamPuff.ttf http://sentyfont.com/index_htm_files/SentyCreamPuff.ttf
 wget -O SentyWen2017.ttf http://sentyfont.com/index_htm_files/SentyWen2017.ttf
 wget -O Hanyi_Senty_Lingfei_Scroll.ttf http://sentyfont.com/index_htm_files/Hanyi%20Senty%20Lingfei%20Scroll.ttf
@@ -48,7 +48,7 @@ wget -O BenmoJingyuan.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E7%AB%9E
 wget -O BenmoJinhei.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E6%B4%A5%E9%BB%91.ttf
 
 # adobe and google
-wget -O DroidSansFallback.ttf https://github.com/android/platform_frameworks_base/blob/master/data/fonts/DroidSansFallback.ttf
+wget -O DroidSansFallback.ttf https://github.com/aosp-mirror/platform_frameworks_base/raw/master/data/fonts/DroidSansFallback.ttf
 
 wget -O SourceHanSerifSC-Medium.otf https://github.com/adobe-fonts/source-han-serif/raw/release/OTF/SimplifiedChinese/SourceHanSerifSC-Medium.otf
 wget -O SourceHanSerifSC-Regular.otf https://github.com/adobe-fonts/source-han-serif/raw/release/OTF/SimplifiedChinese/SourceHanSerifSC-Regular.otf
