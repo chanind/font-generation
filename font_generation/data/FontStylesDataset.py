@@ -60,12 +60,18 @@ class FontStylesDataset(IterableDataset):
             "styles": styles_tensor,
         }
 
+    @property
+    def total_per_worker(self):
+        worker_info = torch.utils.data.get_worker_info()
+        num_workers = worker_info.num_workers if worker_info else 1
+        return int(self.total_samples / num_workers)
+
     def __iter__(self):
-        for i in range(self.total_samples):
+        for i in range(self.total_per_worker):
             if self.pregenerated_samples:
                 yield self.pregenerated_samples[i]
             else:
                 yield self.generate_sample()
 
     def __len__(self):
-        return self.total_samples
+        return self.total_per_worker

@@ -4,10 +4,11 @@ import datetime
 import os
 from pathlib import Path
 import time
-
+from tqdm import tqdm
 import torch
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from font_generation.model.model import Discriminator, Generator
 from font_generation.data.FontStylesDataset import FontStylesDataset
@@ -39,6 +40,8 @@ def train(
     checkpoint_dir = experiment_dir / "checkpoints"
     samples_dir = experiment_dir / "samples"
     logs_dir = experiment_dir / "logs"
+
+    writer = SummaryWriter(comment=f"LR_{lr}_BS_{batch_size}_N_{total_samples}")
 
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     samples_dir.mkdir(parents=True, exist_ok=True)
@@ -99,147 +102,169 @@ def train(
     logfile = open(experiment_dir / "loss_log.txt", "w")
     val_logfile = open(experiment_dir / "val_loss_log.txt", "w")
 
+    global_step = 0
     for epoch in range(init_epoch, epochs):
-        for batch_idx, batch in enumerate(train_dataloader):
-            content_img = batch["content"].to(device)
-            style_imgs = batch["styles"].to(device)
+        with tqdm(
+            total=n_train, desc=f"Epoch {epoch + 1}/{epochs}", unit="img"
+        ) as pbar:
+            for batch_idx, batch in enumerate(train_dataloader):
+                pbar.update(batch_size)
+                content_img = batch["content"].to(device)
+                style_imgs = batch["styles"].to(device)
 
-            target_img = batch["target"].to(device)
+                target_img = batch["target"].to(device)
 
-            valid = torch.ones((content_img.size(0), *patch)).to(device)
-            fake = torch.zeros((content_img.size(0), *patch)).to(device)
+                valid = torch.ones((content_img.size(0), *patch)).to(device)
+                fake = torch.zeros((content_img.size(0), *patch)).to(device)
 
-            # Forward G and D
-            fake_img = generator(content_img, style_imgs)
-            pred_fake = discriminator(fake_img, style_imgs)
+                # Forward G and D
+                fake_img = generator(content_img, style_imgs)
+                pred_fake = discriminator(fake_img, style_imgs)
 
-            # if lambda_cx > 0:
-            #     vgg_fake_B = vgg19(fake_B)
-            #     vgg_img_B = vgg19(img_B)
+                # if lambda_cx > 0:
+                #     vgg_fake_B = vgg19(fake_B)
+                #     vgg_img_B = vgg19(img_B)
 
-            # Calculate losses
-            loss_GAN = lambda_GAN * criterion_GAN(pred_fake, valid)
-            loss_pixel = lambda_l1 * criterion_pixel(fake_img, target_img)
+                # Calculate losses
+                loss_GAN = lambda_GAN * criterion_GAN(pred_fake, valid)
+                loss_pixel = lambda_l1 * criterion_pixel(fake_img, target_img)
 
-            # loss_char_A = criterion_ce(
-            #     content_logits_A, charclass_A.view(charclass_A.size(0))
-            # )  # +
-            # loss_char_A = lambda_char * loss_char_A
+                # loss_char_A = criterion_ce(
+                #     content_logits_A, charclass_A.view(charclass_A.size(0))
+                # )  # +
+                # loss_char_A = lambda_char * loss_char_A
 
-            # # CX loss
-            # loss_CX = torch.zeros(1).to(device)
-            # if lambda_cx > 0:
-            #     for l in vgg_layers:
-            #         cx = criterion_cx(vgg_img_B[l], vgg_fake_B[l])
-            #         loss_CX += cx * lambda_cx
+                # # CX loss
+                # loss_CX = torch.zeros(1).to(device)
+                # if lambda_cx > 0:
+                #     for l in vgg_layers:
+                #         cx = criterion_cx(vgg_img_B[l], vgg_fake_B[l])
+                #         loss_CX += cx * lambda_cx
 
-            loss_G = loss_GAN + loss_pixel  # + loss_char_A + loss_CX
+                loss_G = loss_GAN + loss_pixel  # + loss_char_A + loss_CX
 
-            optimizer_G.zero_grad()
-            loss_G.backward(retain_graph=True)
-            optimizer_G.step()
+                optimizer_G.zero_grad()
+                loss_G.backward(retain_graph=True)
+                optimizer_G.step()
 
-            # Forward D
-            pred_real = discriminator(target_img, style_imgs)
-            loss_real = criterion_GAN(pred_real, valid)
+                # Forward D
+                pred_real = discriminator(target_img, style_imgs)
+                loss_real = criterion_GAN(pred_real, valid)
 
-            pred_fake = discriminator(fake_img.detach(), style_imgs)  # noqa
-            loss_fake = criterion_GAN(pred_fake, fake)
+                pred_fake = discriminator(fake_img.detach(), style_imgs)  # noqa
+                loss_fake = criterion_GAN(pred_fake, fake)
 
-            loss_D = loss_real + loss_fake
+                loss_D = loss_real + loss_fake
 
-            optimizer_D.zero_grad()
-            loss_D.backward(retain_graph=True)
-            optimizer_D.step()
+                optimizer_D.zero_grad()
+                loss_D.backward(retain_graph=True)
+                optimizer_D.step()
 
-            batches_done = (epoch - init_epoch) * len(train_dataloader) + batch_idx
-            batches_left = (epochs - init_epoch) * len(train_dataloader) - batches_done
-            time_left = datetime.timedelta(
-                seconds=batches_left * (time.time() - prev_time)
-            )
-            prev_time = time.time()
-
-            message = (
-                f"Epoch: {epoch}/{epochs}, Batch: {batch_idx}/{len(train_dataloader)}, ETA: {time_left}, "
-                f"D loss: {loss_D.item():.6f}, G loss: {loss_G.item():.6f}, "
-                f"loss_pixel: {loss_pixel.item():.6f}, "
-                f"loss_adv: {loss_GAN.item():.6f}, "
-            )
-
-            logfile.write(message + "\n")
-            logfile.flush()
-
-            if batches_done % log_freq == 0:
-                img_sample = torch.cat(
-                    (
-                        fake_img.data,
-                        target_img.data,
-                        content_img.data,
-                        style_imgs.data.view(
-                            (
-                                style_imgs.shape[0],
-                                style_imgs.shape[-3],
-                                -1,  # stack vertically
-                                style_imgs.shape[-1],
-                            )
-                        ),
-                    ),
-                    -2,
+                batches_done = (epoch - init_epoch) * len(train_dataloader) + batch_idx
+                batches_left = (epochs - init_epoch) * len(
+                    train_dataloader
+                ) - batches_done
+                time_left = datetime.timedelta(
+                    seconds=batches_left * (time.time() - prev_time)
                 )
-                save_file = os.path.join(
-                    logs_dir, f"epoch_{epoch}_batch_{batches_done}.png"
+                prev_time = time.time()
+
+                message = (
+                    f"Epoch: {epoch}/{epochs}, Batch: {batch_idx}/{len(train_dataloader)}, ETA: {time_left}, "
+                    f"D loss: {loss_D.item():.6f}, G loss: {loss_G.item():.6f}, "
+                    f"loss_pixel: {loss_pixel.item():.6f}, "
+                    f"loss_adv: {loss_GAN.item():.6f}, "
                 )
-                save_image(img_sample, save_file, nrow=11, normalize=True)
 
-            if batches_done % val_freq == 0:
-                with torch.no_grad():
-                    val_l1_loss = torch.zeros(1).to(device)
-                    for val_idx, val_batch in enumerate(test_dataloader):
-                        if (
-                            val_idx == 20
-                        ):  # only validate on first 20 batches, you can change it
-                            break
-                        val_content = val_batch["content"].to(device)
-                        val_styles = val_batch["styles"].to(device)
+                pbar.set_postfix(**{"G loss": loss_G.item(), "D loss": loss_D.item()})
+                writer.add_scalar("GLoss/train", loss_G.item(), global_step)
+                writer.add_scalar("DLoss/train", loss_D.item(), global_step)
+                global_step += 1
 
-                        val_target = val_batch["target"].to(device)
+                logfile.write(message + "\n")
+                logfile.flush()
 
-                        val_fake = generator(val_content, val_styles)
-
-                        val_l1_loss += criterion_pixel(val_fake, val_target)
-
-                        img_sample = torch.cat(
-                            (
-                                val_fake.data,
-                                val_target.data,
-                                val_content.data,
-                                val_styles.data.view(
-                                    (
-                                        val_styles.shape[0],
-                                        val_styles.shape[-3],
-                                        -1,  # stack vertically
-                                        val_styles.shape[-1],
-                                    )
-                                ),
+                if batches_done % log_freq == 0:
+                    img_sample = torch.cat(
+                        (
+                            fake_img.data,
+                            target_img.data,
+                            content_img.data,
+                            style_imgs.data.view(
+                                (
+                                    style_imgs.shape[0],
+                                    style_imgs.shape[-3],
+                                    -1,  # stack vertically
+                                    style_imgs.shape[-1],
+                                )
                             ),
-                            -2,
-                        )
-                        save_file = os.path.join(
-                            samples_dir, f"epoch_{epoch}_idx_{val_idx}.png"
-                        )
-                        save_image(img_sample, save_file, nrow=11, normalize=True)
-
-                    val_l1_loss = val_l1_loss / 20
-                    val_msg = (
-                        f"Epoch: {epoch}/{epochs}, Batch: {batch_idx}/{len(train_dataloader)}, "
-                        f"L1: {val_l1_loss.item(): .6f}"
+                        ),
+                        -2,
                     )
-                    print(val_msg)
-                    val_logfile.write(val_msg + "\n")
-                    val_logfile.flush()
-        if epoch % checkpoint_freq == 0:
-            gen_file_file = os.path.join(checkpoint_dir, f"G_{epoch}.pth")
-            dis_file_file = os.path.join(checkpoint_dir, f"D_{epoch}.pth")
+                    save_file = os.path.join(
+                        logs_dir, f"epoch_{epoch}_batch_{batches_done}.png"
+                    )
+                    save_image(img_sample, save_file, nrow=11, normalize=True)
+                    writer.add_scalar(
+                        "learning_rate_G",
+                        optimizer_G.param_groups[0]["lr"],
+                        global_step,
+                    )
+                    writer.add_scalar(
+                        "learning_rate_D",
+                        optimizer_D.param_groups[0]["lr"],
+                        global_step,
+                    )
 
-            torch.save(generator.state_dict(), gen_file_file)
-            torch.save(discriminator.state_dict(), dis_file_file)
+                if batches_done % val_freq == 0:
+                    with torch.no_grad():
+                        val_l1_loss = torch.zeros(1).to(device)
+                        total_val_batches = 0
+                        for val_idx, val_batch in enumerate(test_dataloader):
+                            total_val_batches += 1
+                            val_content = val_batch["content"].to(device)
+                            val_styles = val_batch["styles"].to(device)
+
+                            val_target = val_batch["target"].to(device)
+
+                            val_fake = generator(val_content, val_styles)
+
+                            val_l1_loss += criterion_pixel(val_fake, val_target)
+
+                            img_sample = torch.cat(
+                                (
+                                    val_fake.data,
+                                    val_target.data,
+                                    val_content.data,
+                                    val_styles.data.view(
+                                        (
+                                            val_styles.shape[0],
+                                            val_styles.shape[-3],
+                                            -1,  # stack vertically
+                                            val_styles.shape[-1],
+                                        )
+                                    ),
+                                ),
+                                -2,
+                            )
+                            save_file = os.path.join(
+                                samples_dir, f"epoch_{epoch}_idx_{val_idx}.png"
+                            )
+                            save_image(img_sample, save_file, nrow=11, normalize=True)
+                            writer.add_images("images", img_sample, global_step)
+
+                        val_l1_loss = val_l1_loss / total_val_batches
+                        writer.add_scalar("val_l1_loss", val_l1_loss, global_step)
+                        val_msg = (
+                            f"Epoch: {epoch}/{epochs}, Batch: {batch_idx}/{len(train_dataloader)}, "
+                            f"L1: {val_l1_loss.item(): .6f}"
+                        )
+                        print(val_msg)
+                        val_logfile.write(val_msg + "\n")
+                        val_logfile.flush()
+            if epoch % checkpoint_freq == 0:
+                gen_file_file = os.path.join(checkpoint_dir, f"G_{epoch}.pth")
+                dis_file_file = os.path.join(checkpoint_dir, f"D_{epoch}.pth")
+
+                torch.save(generator.state_dict(), gen_file_file)
+                torch.save(discriminator.state_dict(), dis_file_file)

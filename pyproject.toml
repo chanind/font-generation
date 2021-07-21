@@ -11,6 +11,7 @@ CairoSVG = "^2.5.2"
 Pillow = "^8.3.1"
 torch = "^1.9.0"
 torchvision = "^0.10.0"
+tqdm = "^4.61.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
