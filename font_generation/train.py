@@ -41,11 +41,13 @@ def train(
     samples_dir = experiment_dir / "samples"
     logs_dir = experiment_dir / "logs"
 
-    writer = SummaryWriter(comment=f"LR_{lr}_BS_{batch_size}_N_{total_samples}")
-
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     samples_dir.mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
+
+    writer = SummaryWriter(
+        comment=f"LR_{lr}_BS_{batch_size}_N_{total_samples}", log_dir=logs_dir
+    )
 
     # Loss criterion
     criterion_GAN = torch.nn.MSELoss().to(device)
