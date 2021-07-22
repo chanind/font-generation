@@ -13,13 +13,17 @@ def tile_like(x, img):
 
 
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channel):
+    def __init__(self, in_channel, kernel_size=3):
         super().__init__()
         conv_block = [
-            nn.Conv2d(in_channel, in_channel, 3, stride=1, padding=1, bias=False),
+            nn.Conv2d(
+                in_channel, in_channel, kernel_size, stride=1, padding=1, bias=False
+            ),
             nn.InstanceNorm2d(in_channel),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channel, in_channel, 3, stride=1, padding=1, bias=False),
+            nn.Conv2d(
+                in_channel, in_channel, kernel_size, stride=1, padding=1, bias=False
+            ),
             nn.InstanceNorm2d(in_channel),
         ]
 
@@ -153,13 +157,14 @@ class StyleEncoder(nn.Module):
         self,
         in_channel: int = 1,
         style_out_channel: int = 256,
-        # n_res_blocks: int = 8,
+        n_style: int = 8,
+        n_res_blocks: int = 8,
     ):
         super().__init__()
         layers = []
         # Initial Conv
         layers += [
-            nn.Conv2d(in_channel, 64, 7, stride=1, padding=3, bias=False),
+            nn.Conv2d(in_channel * n_style, 64, 7, stride=1, padding=3, bias=False),
             nn.InstanceNorm2d(64),
             nn.ReLU(inplace=True),
         ]
@@ -174,11 +179,13 @@ class StyleEncoder(nn.Module):
         self.down = nn.Sequential(*layers)
 
         # Style transform
-        # res_blks = []
-        # res_channel = style_out_channel
-        # for _ in range(n_res_blocks):
-        #     res_blks.append(ResidualBlock(res_channel))
-        # self.res_layer = nn.Sequential(*res_blks)
+        res_blks = []
+        res_channel = style_out_channel
+        for _ in range(n_res_blocks):
+            # 64x64 images turn into 1px here, so it seems dumb to use a 3x3 kernel on 1 px. Also pytorch errors
+            # This all just seems pretty silly tbh...
+            res_blks.append(ResidualBlock(res_channel, kernel_size=1))
+        self.res_layer = nn.Sequential(*res_blks)
         # self.encoder = nn.Sequential(self.down, self.res_layer)
 
     def forward(self, style_imgs):
@@ -186,23 +193,12 @@ class StyleEncoder(nn.Module):
         style_imgs should be of shape BATCH x N_STYLE_IMGS x 1 x W x H
         """
 
-        # print("si", style_imgs.shape)
-        # first, stack the style images on top of each other along the batch direction, so we can get a style vector for each
-        n_style = style_imgs.shape[1]
-        # print("nstyle", n_style)
-        style_imgs_reshaped = style_imgs.view(-1, *style_imgs.shape[-3:])
-        # print("sir", style_imgs_reshaped.shape)
-        encoded_styles_reshaped = self.down(style_imgs_reshaped)
-        # print("x", x.shape)
-        # encoded_styles_reshaped = self.res_layer(x)
-        # encoded_styles_reshaped = self.encoder(style_imgs_reshaped)
-
-        # reinflate the n_style encodings, and average them together along the n_styles dimension
-        # TODO: is there a smarter way to combine these style vectors than just a simple average?
-        encoded_styles = encoded_styles_reshaped.view(
-            -1, n_style, *encoded_styles_reshaped.shape[1:]
+        # merge style images along channel dim
+        style_imgs_reshaped = style_imgs.view(
+            style_imgs.shape[0], -1, *style_imgs.shape[-2:]
         )
-        return encoded_styles.mean(1)
+        encoded_styles = self.down(style_imgs_reshaped)
+        return encoded_styles
 
 
 class Generator(nn.Module):
