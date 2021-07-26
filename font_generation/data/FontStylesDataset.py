@@ -18,12 +18,12 @@ class FontStylesDataset(IterableDataset):
         self,
         fonts: List[Font],
         total_samples: int,
-        n_styles: int = 8,
+        n_style: int = 8,
         size_px=64,
         static: bool = False,
     ):
         super().__init__()
-        self.n_styles = n_styles
+        self.n_style = n_style
         self.size_px = size_px
         self.total_samples = total_samples
         self.fonts = fonts
@@ -36,28 +36,39 @@ class FontStylesDataset(IterableDataset):
             ]
 
     def generate_sample(self):
-        style_font, content_font = random.sample(self.fonts, k=2)
+        target_font, content_font = random.sample(self.fonts, k=2)
         common_glyph_keys = list(
-            style_font.glyph_keys_set().intersection(content_font.glyph_keys_set())
+            target_font.glyph_keys_set().intersection(content_font.glyph_keys_set())
         )
         target_char = random.choice(common_glyph_keys)
-        style_chars = random.sample(style_font.glyph_keys_list(), k=self.n_styles)
+        target_style_chars = random.sample(target_font.glyph_keys_list(), k=self.n_style)
+        content_style_chars = random.sample(content_font.glyph_keys_list(), k=self.n_style)
+
 
         content_img = content_font.glyphs_map[target_char].to_pil(self.size_px)
         content_tensor = pil_to_tensor(content_img)
 
-        target_img = style_font.glyphs_map[target_char].to_pil(self.size_px)
+        target_img = target_font.glyphs_map[target_char].to_pil(self.size_px)
         target_tensor = pil_to_tensor(target_img)
 
-        style_imgs = [
-            style_font.glyphs_map[char].to_pil(self.size_px) for char in style_chars
+        target_style_imgs = [
+            target_font.glyphs_map[char].to_pil(self.size_px) for char in target_style_chars
         ]
-        style_tensors = [pil_to_tensor(style_img) for style_img in style_imgs]
-        styles_tensor = torch.stack(style_tensors, dim=0)
+        target_style_tensors = [pil_to_tensor(style_img) for style_img in target_style_imgs]
+        target_styles_tensor = torch.stack(target_style_tensors, dim=0)
+
+        content_style_imgs = [
+            content_font.glyphs_map[char].to_pil(self.size_px) for char in content_style_chars
+        ]
+        content_style_tensors = [pil_to_tensor(style_img) for style_img in content_style_imgs]
+        content_styles_tensor = torch.stack(content_style_tensors, dim=0)
+
+
         return {
             "content": content_tensor,
             "target": target_tensor,
-            "styles": styles_tensor,
+            "content_styles": content_styles_tensor,
+            "target_styles": target_styles_tensor,
         }
 
     @property
