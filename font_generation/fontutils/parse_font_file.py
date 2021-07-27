@@ -8,9 +8,17 @@ from .Font import Font
 from .Glyph import Glpyh
 
 # just want to keep latin chars, some punct, and Hanzi
-VALID_UNICODE_RANGES = [
+EXTENDED_UNICODE_RANGES = [
     range(33, 94),
     range(97, 127),
+    # CJK Unified Ideographs
+    range(int("4E00", 16), int("9FFF", 16)),
+]
+
+# Just a-zA-Z
+SIMPLE_UNICODE_RANGES = [
+    range(65, 91),
+    range(97, 123),
     # CJK Unified Ideographs
     range(int("4E00", 16), int("9FFF", 16)),
 ]
@@ -49,8 +57,11 @@ def find_best_ttfont(ttfonts: Sequence[TTFont]) -> TTFont:
     return ttfonts[0]
 
 
-def should_keep_char(code: int) -> bool:
-    return any([code in code_range for code_range in VALID_UNICODE_RANGES])
+def should_keep_char(code: int, simple_chars_only: bool = False) -> bool:
+    code_ranges = (
+        SIMPLE_UNICODE_RANGES if simple_chars_only else EXTENDED_UNICODE_RANGES
+    )
+    return any([code in code_range for code_range in code_ranges])
 
 
 def extract_all_ttc_ttfonts(font_path: str) -> List[TTFont]:
@@ -63,24 +74,26 @@ def extract_all_ttc_ttfonts(font_path: str) -> List[TTFont]:
     return ttfonts
 
 
-def parse_ttc_font_file(font_path: str) -> Font:
+def parse_ttc_font_file(font_path: str, simple_chars_only: bool = False) -> Font:
     font_name = basename(font_path)
     ttfonts = extract_all_ttc_ttfonts(font_path)
-    return parse_ttfont(find_best_ttfont(ttfonts), font_name)
+    return parse_ttfont(
+        find_best_ttfont(ttfonts), font_name, simple_chars_only=simple_chars_only
+    )
 
 
-def parse_ttf_font_file(font_path: str) -> Font:
+def parse_ttf_font_file(font_path: str, simple_chars_only: bool = False) -> Font:
     font_name = basename(font_path)
     with open(font_path, "rb") as file:
         ttfont = TTFont(file)
-    return parse_ttfont(ttfont, font_name)
+    return parse_ttfont(ttfont, font_name, simple_chars_only=simple_chars_only)
 
 
-def parse_font_file(font_path: str) -> Font:
+def parse_font_file(font_path: str, simple_chars_only: bool = False) -> Font:
     print(f"loading font: {font_path}")
     if Path(font_path).match("*.ttc") or Path(font_path).match("*.TTC"):
-        return parse_ttc_font_file(font_path)
-    return parse_ttf_font_file(font_path)
+        return parse_ttc_font_file(font_path, simple_chars_only=simple_chars_only)
+    return parse_ttf_font_file(font_path, simple_chars_only=simple_chars_only)
 
 
 def get_unicode_mapping_for_ttfont(ttfont: TTFont) -> Dict[str, int]:
@@ -91,7 +104,9 @@ def get_unicode_mapping_for_ttfont(ttfont: TTFont) -> Dict[str, int]:
     return mapping
 
 
-def parse_ttfont(ttfont: TTFont, font_name: str, font_num: int = 0) -> Font:
+def parse_ttfont(
+    ttfont: TTFont, font_name: str, font_num: int = 0, simple_chars_only: bool = False
+) -> Font:
     glpyhs_map: Dict[int, Glpyh] = {}
     os2 = ttfont["OS/2"]
     ttglyphset = ttfont.getGlyphSet()
@@ -99,7 +114,12 @@ def parse_ttfont(ttfont: TTFont, font_name: str, font_num: int = 0) -> Font:
     for glyph_name in ttfont.getGlyphNames():
         ttglyph = ttglyphset[glyph_name]
         unicode = unicode_mapping.get(glyph_name)
-        if ttglyph and unicode and ttglyph.width > 0 and should_keep_char(unicode):
+        if (
+            ttglyph
+            and unicode
+            and ttglyph.width > 0
+            and should_keep_char(unicode, simple_chars_only)
+        ):
             glpyhs_map[unicode] = Glpyh(
                 unicode=unicode,
                 ttglyph=ttglyph,

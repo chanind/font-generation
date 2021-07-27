@@ -49,6 +49,7 @@ def train(
     checkpoint_freq=10,
     log_freq=500,
     val_freq=500,
+    simple_chars_only: bool = False,
 ):
     # Dirs
     checkpoint_dir = experiment_dir / "checkpoints"
@@ -78,7 +79,7 @@ def train(
         vgg19.eval()
         vgg_layers = ["conv3_3", "conv4_2"]
 
-    fonts = load_all_fonts(max_fonts=max_fonts)
+    fonts = load_all_fonts(max_fonts=max_fonts, simple_chars_only=simple_chars_only)
 
     train_dataloader = DataLoader(
         FontStylesDataset(
