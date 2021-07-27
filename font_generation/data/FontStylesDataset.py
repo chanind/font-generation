@@ -6,7 +6,12 @@ import torch
 import random
 
 
-tensorify = transforms.ToTensor()
+tensorify = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+    ]
+)
 
 
 def pil_to_tensor(img):
@@ -41,9 +46,12 @@ class FontStylesDataset(IterableDataset):
             target_font.glyph_keys_set().intersection(content_font.glyph_keys_set())
         )
         target_char = random.choice(common_glyph_keys)
-        target_style_chars = random.sample(target_font.glyph_keys_list(), k=self.n_style)
-        content_style_chars = random.sample(content_font.glyph_keys_list(), k=self.n_style)
-
+        target_style_chars = random.sample(
+            target_font.glyph_keys_list(), k=self.n_style
+        )
+        content_style_chars = random.sample(
+            content_font.glyph_keys_list(), k=self.n_style
+        )
 
         content_img = content_font.glyphs_map[target_char].to_pil(self.size_px)
         content_tensor = pil_to_tensor(content_img)
@@ -52,17 +60,22 @@ class FontStylesDataset(IterableDataset):
         target_tensor = pil_to_tensor(target_img)
 
         target_style_imgs = [
-            target_font.glyphs_map[char].to_pil(self.size_px) for char in target_style_chars
+            target_font.glyphs_map[char].to_pil(self.size_px)
+            for char in target_style_chars
         ]
-        target_style_tensors = [pil_to_tensor(style_img) for style_img in target_style_imgs]
+        target_style_tensors = [
+            pil_to_tensor(style_img) for style_img in target_style_imgs
+        ]
         target_styles_tensor = torch.stack(target_style_tensors, dim=0)
 
         content_style_imgs = [
-            content_font.glyphs_map[char].to_pil(self.size_px) for char in content_style_chars
+            content_font.glyphs_map[char].to_pil(self.size_px)
+            for char in content_style_chars
         ]
-        content_style_tensors = [pil_to_tensor(style_img) for style_img in content_style_imgs]
+        content_style_tensors = [
+            pil_to_tensor(style_img) for style_img in content_style_imgs
+        ]
         content_styles_tensor = torch.stack(content_style_tensors, dim=0)
-
 
         return {
             "content": content_tensor,
