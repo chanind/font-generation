@@ -71,7 +71,7 @@ def train(
     n_val = int(total_samples * val_portion)
     n_train = total_samples - n_val
 
-    # # CX Loss
+    # CX Loss
     if lambda_cx > 0:
         criterion_cx = CXLoss(sigma=0.5).to(device)
         vgg19 = VGG19_CX().to(device)

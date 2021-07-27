@@ -19,8 +19,6 @@ EXTENDED_UNICODE_RANGES = [
 SIMPLE_UNICODE_RANGES = [
     range(65, 91),
     range(97, 123),
-    # CJK Unified Ideographs
-    range(int("4E00", 16), int("9FFF", 16)),
 ]
 
 FONT_SPECIFIER_NAME_ID = 4
