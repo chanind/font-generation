@@ -33,7 +33,6 @@ wget -O HanyiSentyGarden.ttf http://sentyfont.com/index_htm_files/HanyiSentyGard
 wget -O BenmoJunsong.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E9%92%A7%E5%AE%8B.ttf
 wget -O BenmoLiuyuan.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E5%AD%97%E9%80%A0%E7%90%89%E5%9C%86.ttf
 wget -O BenmoSanyue.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E5%AD%97%E9%80%A0%E4%B8%89%E6%9C%88.ttf
-wget -O BenmoYisong.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E5%AD%97%E9%80%A0%E6%84%8F%E5%AE%8B.ttf
 wget -O BenmoBeijia.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E5%AD%97%E9%80%A0%E8%B4%9D%E5%98%89.ttf
 wget -O BenmoBeiyuan.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E5%AD%97%E9%80%A0%E8%B4%9D%E5%9C%86.ttf
 wget -O BenmoRuiyi.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E5%AD%97%E9%80%A0%E9%94%90%E9%80%B8.ttf
