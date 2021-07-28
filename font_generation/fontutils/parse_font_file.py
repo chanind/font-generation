@@ -1,3 +1,4 @@
+from font_generation.fontutils.hanzi_by_frequency import HANZI_BY_FREQUENCY
 from typing import Dict, List, Sequence, Tuple
 from fontTools.ttLib.sfnt import readTTCHeader
 from fontTools.ttLib import TTFont
@@ -7,19 +8,15 @@ from pathlib import Path
 from .Font import Font
 from .Glyph import Glpyh
 
-# just want to keep latin chars, some punct, and Hanzi
-EXTENDED_UNICODE_RANGES = [
-    range(33, 94),
-    range(97, 127),
-    # CJK Unified Ideographs
-    range(int("4E00", 16), int("9FFF", 16)),
-]
-
-# Just a-zA-Z
+# Just a-zA-Z0-9
 SIMPLE_UNICODE_RANGES = [
+    range(48, 58),
     range(65, 91),
     range(97, 123),
 ]
+
+TOP_HANZI_ENCODINGS = set([ord(hanzi) for hanzi in HANZI_BY_FREQUENCY[0:2000]])
+
 
 FONT_SPECIFIER_NAME_ID = 4
 FONT_SPECIFIER_FAMILY_ID = 1
@@ -56,10 +53,12 @@ def find_best_ttfont(ttfonts: Sequence[TTFont]) -> TTFont:
 
 
 def should_keep_char(code: int, simple_chars_only: bool = False) -> bool:
-    code_ranges = (
-        SIMPLE_UNICODE_RANGES if simple_chars_only else EXTENDED_UNICODE_RANGES
-    )
-    return any([code in code_range for code_range in code_ranges])
+    is_simple_char = any([code in code_range for code_range in SIMPLE_UNICODE_RANGES])
+    if is_simple_char:
+        return True
+    if not simple_chars_only and code in TOP_HANZI_ENCODINGS:
+        return True
+    return False
 
 
 def extract_all_ttc_ttfonts(font_path: str) -> List[TTFont]:
