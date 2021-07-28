@@ -7,9 +7,10 @@ from pathlib import Path
 
 from .Font import Font
 from .Glyph import Glpyh
+from .is_alphanum_char_code import is_alphanum_char_code
 
 # Just a-zA-Z0-9
-SIMPLE_UNICODE_RANGES = [
+ALPHANUM_UNICODE_RANGES = [
     range(48, 58),
     range(65, 91),
     range(97, 123),
@@ -53,7 +54,7 @@ def find_best_ttfont(ttfonts: Sequence[TTFont]) -> TTFont:
 
 
 def should_keep_char(code: int, simple_chars_only: bool = False) -> bool:
-    is_simple_char = any([code in code_range for code_range in SIMPLE_UNICODE_RANGES])
+    is_simple_char = is_alphanum_char_code(code)
     if is_simple_char:
         return True
     if not simple_chars_only and code in TOP_HANZI_ENCODINGS:

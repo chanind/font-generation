@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict
 from .Glyph import Glpyh
+from .is_alphanum_char_code import is_alphanum_char_code
 
 
 @dataclass
@@ -19,4 +20,8 @@ class Font:
 
     @lru_cache(maxsize=1)
     def glyph_keys_set(self):
-        return set(self.glyphs_map.keys())
+        return set(self.glyph_keys_list())
+
+    @lru_cache(maxsize=1)
+    def alphanum_glyph_keys_list(self):
+        return [key for key in self.glyph_keys_list if is_alphanum_char_code(key)]

@@ -46,11 +46,13 @@ class FontStylesDataset(IterableDataset):
             target_font.glyph_keys_set().intersection(content_font.glyph_keys_set())
         )
         target_char = random.choice(common_glyph_keys)
+        # Try using only alphanum chars for both target and source styles
         target_style_chars = random.sample(
-            target_font.glyph_keys_list(), k=self.n_style
+            target_font.alphanum_glyph_keys_list(), k=self.n_style
         )
+        # we're always going to only have alphanum chars for the source styles, ex comic sans
         content_style_chars = random.sample(
-            content_font.glyph_keys_list(), k=self.n_style
+            content_font.alphanum_glyph_keys_list(), k=self.n_style
         )
 
         content_img = content_font.glyphs_map[target_char].to_pil(self.size_px)
