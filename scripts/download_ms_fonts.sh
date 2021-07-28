@@ -90,4 +90,3 @@ fi
 rm *.exe
 rm msfonts.info
 rm *.DLL
-rm Webdings.ttf
