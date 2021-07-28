@@ -148,7 +148,6 @@ def train(
 
                 # Calculate losses
                 loss_GAN = lambda_GAN * criterion_GAN(pred_fake, valid)
-                loss_pixel = lambda_l1 * criterion_pixel(fake_img, target_img)
 
                 # loss_char_A = criterion_ce(
                 #     content_logits_A, charclass_A.view(charclass_A.size(0))
@@ -161,6 +160,10 @@ def train(
                     for layer in vgg_layers:
                         cx = criterion_cx(vgg_target[layer], vgg_fake[layer])
                         loss_CX += cx * lambda_cx
+
+                loss_pixel = torch.zeros(1).to(device)
+                if lambda_l1 > 0:
+                    loss_pixel = lambda_l1 * criterion_pixel(fake_img, target_img)
 
                 loss_G = loss_GAN + loss_pixel + loss_CX  # + loss_char_A
 

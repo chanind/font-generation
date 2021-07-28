@@ -54,9 +54,13 @@ wget -O SourceHanSerifSC-Regular.otf https://github.com/adobe-fonts/source-han-s
 wget -O SourceHanSerifSC-Heavy.otf https://github.com/adobe-fonts/source-han-serif/raw/release/OTF/SimplifiedChinese/SourceHanSerifSC-Heavy.otf
 wget -O SourceHanSerifSC-ExtraLight.otf https://github.com/adobe-fonts/source-han-serif/raw/release/OTF/SimplifiedChinese/SourceHanSerifSC-ExtraLight.otf
 
+wget -O SourceHanMonoSC-Normal.otf https://github.com/adobe-fonts/source-han-mono/raw/master/Normal/OTC/SourceHanMonoSC-Normal.otf
+wget -O SourceHanMonoSC-Medium.otf https://github.com/adobe-fonts/source-han-mono/raw/master/Medium/OTC/SourceHanMonoSC-Medium.otf
 wget -O SourceHanMonoSC-Regular.otf https://github.com/adobe-fonts/source-han-mono/raw/master/Regular/OTC/SourceHanMonoSC-Regular.otf
 wget -O SourceHanMonoSC-Heavy.otf https://github.com/adobe-fonts/source-han-mono/raw/master/Heavy/OTC/SourceHanMonoSC-Heavy.otf
 wget -O SourceHanMonoSC-ExtraLight.otf https://github.com/adobe-fonts/source-han-mono/raw/master/ExtraLight/OTC/SourceHanMonoSC-ExtraLight.otf
+wget -O SourceHanMonoSC-Bold.otf https://github.com/adobe-fonts/source-han-mono/raw/master/Bold/OTC/SourceHanMonoSC-Bold.otf
+wget -O SourceHanMonoSC-Light.otf https://github.com/adobe-fonts/source-han-mono/raw/master/Light/OTC/SourceHanMonoSC-Light.otf
 
 # yegenyou
 wget -O yegenyouTangKaiJian.ttf http://yegenyou.com/upload/font/35.ttf
