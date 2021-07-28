@@ -47,7 +47,7 @@ wget -O BenmoJingyuan.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E7%AB%9E
 wget -O BenmoJinhei.ttf http://www.benmo.biz/fonts/%E6%9C%AC%E5%A2%A8%E6%B4%A5%E9%BB%91.ttf
 
 # adobe and google
-wget -O DroidSansFallback.ttf https://github.com/aosp-mirror/platform_frameworks_base/raw/master/data/fonts/DroidSansFallback.ttf
+# wget -O DroidSansFallback.ttf https://github.com/aosp-mirror/platform_frameworks_base/raw/master/data/fonts/DroidSansFallback.ttf
 
 wget -O SourceHanSerifSC-Medium.otf https://github.com/adobe-fonts/source-han-serif/raw/release/OTF/SimplifiedChinese/SourceHanSerifSC-Medium.otf
 wget -O SourceHanSerifSC-Regular.otf https://github.com/adobe-fonts/source-han-serif/raw/release/OTF/SimplifiedChinese/SourceHanSerifSC-Regular.otf

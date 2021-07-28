@@ -1,21 +1,9 @@
-from font_generation.fontutils.Font import Font
 from typing import List
 from torch.utils.data import IterableDataset
-from torchvision import transforms
 import torch
 import random
-
-
-tensorify = transforms.Compose(
-    [
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.5, 0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5, 0.5)),
-    ]
-)
-
-
-def pil_to_tensor(img):
-    return tensorify(img)[3, :, :].unsqueeze(0)
+from font_generation.fontutils.Font import Font
+from .pil_to_tensor import pil_to_tensor
 
 
 class FontStylesDataset(IterableDataset):
