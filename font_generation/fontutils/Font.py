@@ -24,4 +24,4 @@ class Font:
 
     @lru_cache(maxsize=1)
     def alphanum_glyph_keys_list(self):
-        return [key for key in self.glyph_keys_list if is_alphanum_char_code(key)]
+        return [key for key in self.glyph_keys_list() if is_alphanum_char_code(key)]
