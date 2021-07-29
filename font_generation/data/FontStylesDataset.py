@@ -40,20 +40,7 @@ class FontStylesDataset(IterableDataset):
         self.size_px = size_px
         self.total_samples = total_samples
         self.fonts = fonts
-        self.enable_transforms = enable_transforms
-
         self.pregenerated_samples = None
-        if static:
-            print("pregenerating samples")
-            self.pregenerated_samples = [
-                self.generate_sample() for _ in range(total_samples)
-            ]
-
-        # annoyingly it doesn't seem like it's possible to pass a list of images into a transform, it needs
-        # to be done via individual keys
-        style_image_transform_targets = {
-            image_index_to_transform_key(i): "image" for i in range(n_style)
-        }
 
         transform_parts = BASE_TRANSFORMS
         if enable_transforms:
@@ -64,9 +51,21 @@ class FontStylesDataset(IterableDataset):
                 A.PadIfNeeded(min_width=size_px, min_height=size_px, p=1.0),
                 A.CenterCrop(height=size_px, width=size_px, p=1.0),
             ] + transform_parts
+
+        # annoyingly it doesn't seem like it's possible to pass a list of images into a transform, it needs
+        # to be done via individual keys
+        style_image_transform_targets = {
+            image_index_to_transform_key(i): "image" for i in range(n_style)
+        }
         self.transform = A.Compose(
             transform_parts, p=1.0, additional_targets=style_image_transform_targets
         )
+
+        if static:
+            print("pregenerating samples")
+            self.pregenerated_samples = [
+                self.generate_sample() for _ in range(total_samples)
+            ]
 
     def generate_sample(self):
         target_font, content_font = random.sample(self.fonts, k=2)
