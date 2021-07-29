@@ -3,7 +3,7 @@ import torch
 
 from .model.model import Generator
 from .fontutils.Font import Font
-from .data.pil_to_tensor import pil_to_tensor
+from .data.transform import pil_to_norm_tensor
 
 
 def generate_glyph(
@@ -24,24 +24,21 @@ def generate_glyph(
             source_font.alphanum_glyph_keys_list(), k=n_style
         )
 
-        content_img = source_font.glyphs_map[target_char_code].to_pil(size_px)
-        content_tensor = pil_to_tensor(content_img)
+        content_tensor = pil_to_norm_tensor(
+            source_font.glyphs_map[target_char_code].to_pil(size_px)
+        )
 
-        target_style_imgs = [
-            target_font.glyphs_map[char].to_pil(size_px) for char in target_style_chars
-        ]
         target_style_tensors = [
-            pil_to_tensor(style_img) for style_img in target_style_imgs
+            pil_to_norm_tensor(target_font.glyphs_map[char].to_pil(size_px))
+            for char in target_style_chars
         ]
-        target_styles_tensor = torch.stack(target_style_tensors, dim=0)
+        target_styles_tensor = torch.stack(target_style_tensors, dim=1)
 
-        source_style_imgs = [
-            source_font.glyphs_map[char].to_pil(size_px) for char in source_style_chars
-        ]
         source_style_tensors = [
-            pil_to_tensor(style_img) for style_img in source_style_imgs
+            pil_to_norm_tensor(source_font.glyphs_map[char].to_pil(size_px))
+            for char in source_style_chars
         ]
-        source_styles_tensor = torch.stack(source_style_tensors, dim=0)
+        source_styles_tensor = torch.stack(source_style_tensors, dim=1)
 
         model.to(device)
         return model(
