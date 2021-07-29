@@ -87,6 +87,7 @@ def train(
         ),
         batch_size=batch_size,
         num_workers=num_workers,
+        enable_transforms=True,
     )
     test_dataloader = DataLoader(
         FontStylesDataset(fonts, n_val, size_px=size_px, static=True, n_style=n_style),

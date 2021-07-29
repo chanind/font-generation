@@ -2,7 +2,10 @@ from typing import List
 from torch.utils.data import IterableDataset
 import torch
 import random
+
 from font_generation.fontutils.Font import Font
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 from .pil_to_tensor import pil_to_tensor
 
 
@@ -14,12 +17,14 @@ class FontStylesDataset(IterableDataset):
         n_style: int = 8,
         size_px=64,
         static: bool = False,
+        enable_transforms: bool = False,
     ):
         super().__init__()
         self.n_style = n_style
         self.size_px = size_px
         self.total_samples = total_samples
         self.fonts = fonts
+        self.enable_transforms = enable_transforms
 
         self.pregenerated_samples = None
         if static:
@@ -27,6 +32,20 @@ class FontStylesDataset(IterableDataset):
             self.pregenerated_samples = [
                 self.generate_sample() for _ in range(total_samples)
             ]
+
+        self.transform = A.Compose(
+            [
+                A.Rotate(limit=5, p=0.8),
+                A.RandomScale(scale_limit=0.05, p=0.8),
+                A.Affine(translate_px=4, shear=[-5, 5], p=0.8),
+                ToTensorV2(p=1.0),
+            ],
+            p=1.0,
+            additional_targets={
+                "glyph_image": "image",
+                "style_images": "images",
+            },
+        )
 
     def generate_sample(self):
         target_font, content_font = random.sample(self.fonts, k=2)
@@ -66,6 +85,14 @@ class FontStylesDataset(IterableDataset):
             pil_to_tensor(style_img) for style_img in content_style_imgs
         ]
         content_styles_tensor = torch.stack(content_style_tensors, dim=0)
+
+        if self.enable_transforms:
+            content_tensor, content_styles_tensor = self.transform(
+                glyph_image=content_tensor, style_images=content_style_tensors
+            )
+            target_tensor, target_styles_tensor = self.transform(
+                glyph_image=target_tensor, style_images=target_style_tensors
+            )
 
         return {
             "content": content_tensor,
