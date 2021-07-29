@@ -83,11 +83,15 @@ def train(
 
     train_dataloader = DataLoader(
         FontStylesDataset(
-            fonts, n_train, size_px=size_px, static=False, n_style=n_style
+            fonts,
+            n_train,
+            size_px=size_px,
+            static=False,
+            n_style=n_style,
+            enable_transforms=True,
         ),
         batch_size=batch_size,
         num_workers=num_workers,
-        enable_transforms=True,
     )
     test_dataloader = DataLoader(
         FontStylesDataset(fonts, n_val, size_px=size_px, static=True, n_style=n_style),

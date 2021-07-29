@@ -88,10 +88,12 @@ class FontStylesDataset(IterableDataset):
 
         if self.enable_transforms:
             content_tensor, content_styles_tensor = self.transform(
-                glyph_image=content_tensor, style_images=content_style_tensors
+                glyph_image=content_tensor.numpy(),
+                style_images=content_style_tensors.numpy(),
             )
             target_tensor, target_styles_tensor = self.transform(
-                glyph_image=target_tensor, style_images=target_style_tensors
+                glyph_image=target_tensor.numpy(),
+                style_images=target_style_tensors.numpy(),
             )
 
         return {
