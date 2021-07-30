@@ -36,6 +36,8 @@ class FontStylesDataset(IterableDataset):
         enable_transforms: bool = False,
     ):
         super().__init__()
+
+        assert n_style % 2 == 0, "n_style must be an even number"
         self.n_style = n_style
         self.size_px = size_px
         self.total_samples = total_samples
@@ -73,14 +75,14 @@ class FontStylesDataset(IterableDataset):
             target_font.glyph_keys_set().intersection(content_font.glyph_keys_set())
         )
         target_char = random.choice(common_glyph_keys)
-        # Try using only alphanum chars for both target and source styles
+        # we're always going to only have alphanum chars for the target styles, ex comic sans
         target_style_chars = random.sample(
             target_font.alphanum_glyph_keys_list(), k=self.n_style
         )
-        # we're always going to only have alphanum chars for the source styles, ex comic sans
+        # Try mixing alphanum and hanzi if possible for the content styles
         content_style_chars = random.sample(
-            content_font.alphanum_glyph_keys_list(), k=self.n_style
-        )
+            content_font.alphanum_glyph_keys_list(), k=int(self.n_style / 2)
+        ) + random.sample(content_font.glyph_keys_list(), k=int(self.n_style / 2))
 
         content_img = pil_to_numpy(
             content_font.glyphs_map[target_char].to_pil(self.size_px)

@@ -15,8 +15,8 @@ def get_model_parameters(model):
     total_parameters = 0
     for layer in list(model.parameters()):
         layer_parameter = 1
-        for l in list(layer.size()):
-            layer_parameter *= l
+        for dim in list(layer.size()):
+            layer_parameter *= dim
         total_parameters += layer_parameter
     return total_parameters
 
@@ -296,8 +296,9 @@ class Generator(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-        # using the style encoder on samples of the target font as an attr embedding
-        attr_channel = style_out_channel
+        # using the style encoder on samples of the target and source font as an attr embedding
+        attr_channel = 2 * style_out_channel
+        style_channel = 2 * style_out_channel
 
         self.down1 = Down(64, 64)
         self.down2 = Down(64, 128)
@@ -307,7 +308,7 @@ class Generator(nn.Module):
         self.down6 = Down(512, 512, normalize=False, dropout=0.5)
 
         self.up1 = AttributeAwareUp(
-            512 + style_out_channel + attr_channel, 512, attr_channel, 5, dropout=0.5
+            512 + style_channel, 512, attr_channel, 5, dropout=0.5
         )
         self.up2 = AttributeAwareUp(
             1024, 512, attr_channel, 4, dropout=0.5, attention=attention
@@ -315,7 +316,6 @@ class Generator(nn.Module):
         self.up3 = AttributeAwareUp(1024, 256, attr_channel, 3, attention=attention)
         self.up4 = AttributeAwareUp(512, 128, attr_channel, 2, attention=attention)
         self.up5 = AttributeAwareUp(256, 64, attr_channel, 1)
-        style_channel = style_out_channel + attr_channel
 
         self.skip_conv1 = nn.Sequential(
             nn.Conv2d(512 + style_channel, 512, 3, stride=1, padding=1, bias=False),
@@ -363,14 +363,11 @@ class Generator(nn.Module):
         source_style = self.style_enc(squeezed_content_styles)
         target_style = self.style_enc(squeezed_target_styles)
 
-        # mimic attrs by subtracting target and source styles
-        attr_feature = target_style - source_style
-
-        attr_feature2d = attr_feature.repeat([1, 1, 64, 64])
-
         # previously, the encoder handles combining source style + attr_feature, but moving that here now that
         # we're using the output of the style encoder itself as a sort of attr_feature
-        style_feature = torch.cat([source_style, attr_feature], dim=1)
+        style_feature = torch.cat([source_style, target_style], dim=1)
+
+        style_feature2d = style_feature.repeat([1, 1, 64, 64])
 
         # Forward content
         conv = self.conv(content_img)
@@ -388,27 +385,27 @@ class Generator(nn.Module):
         style1 = tile_like(skip_style_feature, d5)
         skip1 = torch.cat([d5, style1], 1)
         skip1 = self.skip_conv1(skip1)
-        u1 = self.up1(d6_, skip1, attr_feature2d)
+        u1 = self.up1(d6_, skip1, style_feature2d)
 
         atyle2 = tile_like(skip_style_feature, d4)
         skip2 = torch.cat([d4, atyle2], 1)
         skip2 = self.skip_conv2(skip2)
-        u2 = self.up2(u1, skip2, attr_feature2d)
+        u2 = self.up2(u1, skip2, style_feature2d)
 
         style3 = tile_like(skip_style_feature, d3)
         skip3 = torch.cat([d3, style3], 1)
         skip3 = self.skip_conv3(skip3)
-        u3 = self.up3(u2, skip3, attr_feature2d)
+        u3 = self.up3(u2, skip3, style_feature2d)
 
         style4 = tile_like(skip_style_feature, d2)
         skip4 = torch.cat([d2, style4], 1)
         skip4 = self.skip_conv4(skip4)
-        u4 = self.up4(u3, skip4, attr_feature2d)
+        u4 = self.up4(u3, skip4, style_feature2d)
 
         style5 = tile_like(skip_style_feature, d1)
         skip5 = torch.cat([d1, style5], 1)
         skip5 = self.skip_conv5(skip5)
-        u5 = self.up5(u4, skip5, attr_feature2d)
+        u5 = self.up5(u4, skip5, style_feature2d)
 
         out = self.final(u5)
         return out
@@ -418,7 +415,7 @@ class Discriminator(nn.Module):
     def __init__(
         self,
         in_channel: int = 1,
-        n_style: int = 8,
+        n_style: int = 4,
     ):
         super().__init__()
 
@@ -430,7 +427,7 @@ class Discriminator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            *discriminator_block(in_channel * (2 + n_style), 64, normalize=False),
+            *discriminator_block(in_channel * (2 + 2 * n_style), 64, normalize=False),
             *discriminator_block(64, 128),
             *discriminator_block(128, 256),
             *discriminator_block(256, 256),
@@ -438,12 +435,18 @@ class Discriminator(nn.Module):
             nn.Conv2d(256, 1, 4, padding=1, bias=False),
         )
 
-    def forward(self, img, content_img, target_style_imgs):
+    def forward(self, img, content_img, content_style_imgs, target_style_imgs):
         # stack style images on top of each other along the channel dim
         squeezed_target_style_imgs = target_style_imgs.view(
             (target_style_imgs.shape[0], -1, *target_style_imgs.shape[-2:])
         )
-        input = torch.cat([img, content_img, squeezed_target_style_imgs], dim=1)
+        squeezed_content_style_imgs = content_style_imgs.view(
+            (content_style_imgs.shape[0], -1, *content_style_imgs.shape[-2:])
+        )
+        input = torch.cat(
+            [img, content_img, squeezed_content_style_imgs, squeezed_target_style_imgs],
+            dim=1,
+        )
         out = self.model(input)
         return out
 
