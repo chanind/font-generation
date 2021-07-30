@@ -430,7 +430,7 @@ class Discriminator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            *discriminator_block(in_channel * (1 + n_style), 64, normalize=False),
+            *discriminator_block(in_channel * (2 + n_style), 64, normalize=False),
             *discriminator_block(64, 128),
             *discriminator_block(128, 256),
             *discriminator_block(256, 256),
@@ -438,12 +438,12 @@ class Discriminator(nn.Module):
             nn.Conv2d(256, 1, 4, padding=1, bias=False),
         )
 
-    def forward(self, img, target_style_imgs):
+    def forward(self, img, content_img, target_style_imgs):
         # stack style images on top of each other along the channel dim
         squeezed_target_style_imgs = target_style_imgs.view(
             (target_style_imgs.shape[0], -1, *target_style_imgs.shape[-2:])
         )
-        input = torch.cat([img, squeezed_target_style_imgs], dim=1)
+        input = torch.cat([img, content_img, squeezed_target_style_imgs], dim=1)
         out = self.model(input)
         return out
 

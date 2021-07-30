@@ -145,7 +145,7 @@ def train(
 
                 # Forward G and D
                 fake_img = generator(content_img, content_style_imgs, target_style_imgs)
-                pred_fake = discriminator(fake_img, target_style_imgs)
+                pred_fake = discriminator(fake_img, content_img, target_style_imgs)
 
                 if lambda_cx > 0:
                     vgg_fake = vgg19(increase_channels(fake_img))
@@ -177,10 +177,12 @@ def train(
                 optimizer_G.step()
 
                 # Forward D
-                pred_real = discriminator(target_img, target_style_imgs)
+                pred_real = discriminator(target_img, content_img, target_style_imgs)
                 loss_real = criterion_GAN(pred_real, valid)
 
-                pred_fake = discriminator(fake_img.detach(), target_style_imgs)  # noqa
+                pred_fake = discriminator(
+                    fake_img.detach(), content_img, target_style_imgs
+                )  # noqa
                 loss_fake = criterion_GAN(pred_fake, fake)
 
                 loss_D = loss_real + loss_fake
