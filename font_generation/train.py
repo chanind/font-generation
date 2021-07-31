@@ -34,6 +34,7 @@ def train(
     total_samples: int = 10000,
     max_fonts=None,
     n_style: int = 4,
+    n_content: int = 4,
     size_px=64,
     epochs=5,
     batch_size=1,
@@ -88,13 +89,21 @@ def train(
             size_px=size_px,
             static=False,
             n_style=n_style,
+            n_content=n_content,
             enable_transforms=True,
         ),
         batch_size=batch_size,
         num_workers=num_workers,
     )
     test_dataloader = DataLoader(
-        FontStylesDataset(fonts, n_val, size_px=size_px, static=True, n_style=n_style),
+        FontStylesDataset(
+            fonts,
+            n_val,
+            size_px=size_px,
+            static=True,
+            n_style=n_style,
+            n_content=n_content,
+        ),
         batch_size=batch_size,
         num_workers=num_workers,
     )
@@ -134,20 +143,16 @@ def train(
         ) as pbar:
             for batch_idx, batch in enumerate(train_dataloader):
                 pbar.update(batch_size)
-                content_img = batch["content"].to(device)
-                target_style_imgs = batch["target_styles"].to(device)
-                content_style_imgs = batch["content_styles"].to(device)
-
+                content_imgs = batch["contents"].to(device)
+                style_imgs = batch["styles"].to(device)
                 target_img = batch["target"].to(device)
 
-                valid = torch.ones((content_img.size(0), *patch)).to(device)
-                fake = torch.zeros((content_img.size(0), *patch)).to(device)
+                valid = torch.ones((target_img.size(0), *patch)).to(device)
+                fake = torch.zeros((target_img.size(0), *patch)).to(device)
 
                 # Forward G and D
-                fake_img = generator(content_img, content_style_imgs, target_style_imgs)
-                pred_fake = discriminator(
-                    fake_img, content_img, content_style_imgs, target_style_imgs
-                )
+                fake_img = generator(content_imgs, style_imgs)
+                pred_fake = discriminator(fake_img, content_imgs, style_imgs)
 
                 if lambda_cx > 0:
                     vgg_fake = vgg19(increase_channels(fake_img))
@@ -179,16 +184,13 @@ def train(
                 optimizer_G.step()
 
                 # Forward D
-                pred_real = discriminator(
-                    target_img, content_img, content_style_imgs, target_style_imgs
-                )
+                pred_real = discriminator(target_img, content_imgs, style_imgs)
                 loss_real = criterion_GAN(pred_real, valid)
 
                 pred_fake = discriminator(
                     fake_img.detach(),
-                    content_img,
-                    content_style_imgs,
-                    target_style_imgs,
+                    content_imgs,
+                    style_imgs,
                 )  # noqa
                 loss_fake = criterion_GAN(pred_fake, fake)
 
@@ -230,13 +232,20 @@ def train(
                         (
                             fake_img.data,
                             target_img.data,
-                            content_img.data,
-                            target_style_imgs.data.view(
+                            content_imgs.data.view(
                                 (
-                                    target_style_imgs.shape[0],
-                                    target_style_imgs.shape[-3],
+                                    content_imgs.shape[0],
+                                    content_imgs.shape[-3],
                                     -1,  # stack vertically
-                                    target_style_imgs.shape[-1],
+                                    content_imgs.shape[-1],
+                                )
+                            ),
+                            style_imgs.data.view(
+                                (
+                                    style_imgs.shape[0],
+                                    style_imgs.shape[-3],
+                                    -1,  # stack vertically
+                                    style_imgs.shape[-1],
                                 )
                             ),
                         ),
@@ -263,15 +272,12 @@ def train(
                         total_val_batches = 0
                         for val_idx, val_batch in enumerate(test_dataloader):
                             total_val_batches += 1
-                            val_content = val_batch["content"].to(device)
-                            val_target_styles = val_batch["target_styles"].to(device)
-                            val_content_styles = val_batch["target_styles"].to(device)
+                            val_contents = val_batch["contents"].to(device)
+                            val_styles = val_batch["styles"].to(device)
 
                             val_target = val_batch["target"].to(device)
 
-                            val_fake = generator(
-                                val_content, val_content_styles, val_target_styles
-                            )
+                            val_fake = generator(val_contents, val_styles)
 
                             val_l1_loss += criterion_pixel(val_fake, val_target)
 
@@ -279,13 +285,20 @@ def train(
                                 (
                                     val_fake.data,
                                     val_target.data,
-                                    val_content.data,
-                                    val_target_styles.data.view(
+                                    val_contents.data.view(
                                         (
-                                            val_target_styles.shape[0],
-                                            val_target_styles.shape[-3],
+                                            val_contents.shape[0],
+                                            val_contents.shape[-3],
                                             -1,  # stack vertically
-                                            val_target_styles.shape[-1],
+                                            val_contents.shape[-1],
+                                        )
+                                    ),
+                                    val_styles.data.view(
+                                        (
+                                            val_styles.shape[0],
+                                            val_styles.shape[-3],
+                                            -1,  # stack vertically
+                                            val_styles.shape[-1],
                                         )
                                     ),
                                 ),

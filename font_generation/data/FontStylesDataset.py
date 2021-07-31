@@ -31,6 +31,7 @@ class FontStylesDataset(IterableDataset):
         fonts: List[Font],
         total_samples: int,
         n_style: int = 4,
+        n_content: int = 4,
         size_px=64,
         static: bool = False,
         enable_transforms: bool = False,
@@ -39,6 +40,7 @@ class FontStylesDataset(IterableDataset):
 
         assert n_style % 2 == 0, "n_style must be an even number"
         self.n_style = n_style
+        self.n_content = n_content
         self.size_px = size_px
         self.total_samples = total_samples
         self.fonts = fonts
@@ -70,23 +72,34 @@ class FontStylesDataset(IterableDataset):
             ]
 
     def generate_sample(self):
-        target_font, content_font = random.sample(self.fonts, k=2)
+        target_font, first_content_font = random.sample(self.fonts, k=2)
         common_glyph_keys = list(
-            target_font.glyph_keys_set().intersection(content_font.glyph_keys_set())
+            target_font.glyph_keys_set().intersection(
+                first_content_font.glyph_keys_set()
+            )
         )
         target_char = random.choice(common_glyph_keys)
+
+        extra_content_fonts = []
+        for font in random.sample(self.fonts, k=len(self.fonts)):
+            if font == target_font or font == first_content_font:
+                continue
+            if target_char in font.glyphs_map:
+                extra_content_fonts.append(font)
+            if len(extra_content_fonts) == self.n_content - 1:
+                break
+
+        content_fonts = [first_content_font] + extra_content_fonts
+
         # we're always going to only have alphanum chars for the target styles, ex comic sans
         target_style_chars = random.sample(
             target_font.alphanum_glyph_keys_list(), k=self.n_style
         )
-        # Try mixing alphanum and hanzi if possible for the content styles
-        content_style_chars = random.sample(
-            content_font.alphanum_glyph_keys_list(), k=int(self.n_style / 2)
-        ) + random.sample(content_font.glyph_keys_list(), k=int(self.n_style / 2))
 
-        content_img = pil_to_numpy(
-            content_font.glyphs_map[target_char].to_pil(self.size_px)
-        )
+        content_imgs = [
+            pil_to_numpy(content_font.glyphs_map[target_char].to_pil(self.size_px))
+            for content_font in content_fonts
+        ]
 
         target_img = pil_to_numpy(
             target_font.glyphs_map[target_char].to_pil(self.size_px)
@@ -97,28 +110,20 @@ class FontStylesDataset(IterableDataset):
             for char in target_style_chars
         ]
 
-        content_style_imgs = [
-            pil_to_numpy(content_font.glyphs_map[char].to_pil(self.size_px))
-            for char in content_style_chars
+        content_tensors = [
+            self.transform(image=image)["image"] for image in content_imgs
         ]
 
-        content_tensor, content_style_tensors = transform_image_and_styles(
-            self.transform,
-            content_img,
-            content_style_imgs,
-        )
-
-        target_tensor, target_style_tensors = transform_image_and_styles(
+        target_tensor, style_tensors = transform_image_and_styles(
             self.transform,
             target_img,
             target_style_imgs,
         )
 
         return {
-            "content": content_tensor,
             "target": target_tensor,
-            "content_styles": torch.stack(content_style_tensors, dim=0),
-            "target_styles": torch.stack(target_style_tensors, dim=0),
+            "contents": torch.stack(content_tensors, dim=0),
+            "styles": torch.stack(style_tensors, dim=0),
         }
 
     @property
