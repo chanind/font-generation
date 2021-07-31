@@ -16,13 +16,13 @@ def generate_glyph(
     size_px=64,
 ) -> torch.Tensor:
     with torch.no_grad():
-        # Try using only alphanum chars for both target and source styles, possibly not a good idea
         target_style_chars = random.sample(
             target_font.alphanum_glyph_keys_list(), k=n_style
         )
+        # Try mixing alphanum and hanzi chars into the source font, to match training
         source_style_chars = random.sample(
-            source_font.alphanum_glyph_keys_list(), k=n_style
-        )
+            source_font.alphanum_glyph_keys_list(), k=int(n_style / 2)
+        ) + random.sample(source_font.glyph_keys_list(), k=int(n_style / 2))
 
         content_tensor = pil_to_norm_tensor(
             source_font.glyphs_map[target_char_code].to_pil(size_px)

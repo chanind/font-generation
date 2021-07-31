@@ -35,6 +35,7 @@ class ResidualBlock(nn.Module):
                 in_channel, in_channel, kernel_size, stride=1, padding=1, bias=False
             ),
             nn.InstanceNorm2d(in_channel),
+            nn.ReLU(inplace=True),
         ]
 
         self.conv_block = nn.Sequential(*conv_block)
@@ -74,6 +75,8 @@ class Down(nn.Module):
             layers.append(nn.InstanceNorm2d(out_channel))
         if lrelu:
             layers.append(nn.LeakyReLU(0.2, inplace=True))
+        else:
+            layers.append(nn.ReLU(inplace=True))
         if dropout:
             layers.append(nn.Dropout(dropout))
         self.model = nn.Sequential(*layers)
@@ -274,13 +277,11 @@ class Generator(nn.Module):
         style_out_channel=128,
         out_channel=1,
         n_res_blocks=8,
-        attr_repeat_size=64,
         attention=True,
     ):
         """Generator with style transform"""
         super().__init__()
 
-        self.attr_repeat_size = attr_repeat_size
         # Style Encoder
         self.style_enc = StyleEncoder(
             in_channel=in_channel,
